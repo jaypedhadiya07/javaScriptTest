@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recipe Book</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f8f9fa;
+    }
+    header {
+      background-color: #343a40;
+      color: #fff;
+      padding: 10px 20px;
+      text-align: center;
+    }
+    main {
+      max-width: 800px;
+      margin: 20px auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    form {
+      display: grid;
+      gap: 10px;
+    }
+    input, textarea, select, button {
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ced4da;
+      border-radius: 5px;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .recipe {
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 15px;
+      margin-bottom: 20px;
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 100px 1fr;
+      align-items: center;
+    }
+    .recipe img {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 5px;
+    }
+    .recipe h2 {
+      margin: 0;
+    }
+    .filter-container {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Recipe Book</h1>
+  </header>
+  <main>
+    <!-- Form to Add Recipe -->
+    <form id="recipeForm">
+      <input type="text" id="title" placeholder="Recipe Title" required />
+      <input type="text" id="ingredients" placeholder="Ingredients (comma-separated)" required />
+      <textarea id="instructions" placeholder="Instructions" required></textarea>
+      <input type="text" id="cuisine" placeholder="Cuisine Type" required />
+      <input type="url" id="image" placeholder="Image URL (optional)" />
+      <button type="submit">Add Recipe</button>
+    </form>
+
+    <!-- Filters and Search -->
+    <div class="filter-container">
+      <input type="text" id="search" placeholder="Search by Title or Ingredients" />
+      <select id="filterCuisine">
+        <option value="">Filter by Cuisine</option>
+      </select>
+    </div>
+
+    <!-- Recipes List -->
+    <div id="recipeList"></div>
+  </main>
+
+  <script>
+    let recipes = JSON.parse(localStorage.getItem('recipes')) || [];
+
+    const recipeForm = document.getElementById('recipeForm');
+    const recipeList = document.getElementById('recipeList');
+    const searchInput = document.getElementById('search');
+    const filterCuisine = document.getElementById('filterCuisine');
+
+    function saveRecipes() {
+      localStorage.setItem('recipes', JSON.stringify(recipes));
+    }
+
+    function displayRecipes() {
+      recipeList.innerHTML = '';
+      const filteredRecipes = recipes.filter(recipe => {
+        const searchText = searchInput.value.toLowerCase();
+        const cuisineFilter = filterCuisine.value;
+        return (
+          (recipe.title.toLowerCase().includes(searchText) ||
+            recipe.ingredients.some(ing => ing.toLowerCase().includes(searchText))) &&
+          (cuisineFilter === '' || recipe.cuisine === cuisineFilter)
+        );
+      });
+
+      filteredRecipes.forEach((recipe, index) => {
+        const recipeDiv = document.createElement('div');
+        recipeDiv.className = 'recipe';
+
+        recipeDiv.innerHTML = `
+          <img src="${recipe.image || 'https://via.placeholder.com/100'}" alt="${recipe.title}" />
+          <div>
+            <h2>${recipe.title}</h2>
+            <p><strong>Ingredients:</strong> ${recipe.ingredients.join(', ')}</p>
+            <p><strong>Instructions:</strong> ${recipe.instructions}</p>
+            <p><strong>Cuisine:</strong> ${recipe.cuisine}</p>
+            <button onclick="editRecipe(${index})">Edit</button>
+            <button onclick="deleteRecipe(${index})">Delete</button>
+          </div>
+        `;
+
+        recipeList.appendChild(recipeDiv);
+      });
+    }
+
+    function populateCuisineFilter() {
+      const cuisines = [...new Set(recipes.map(r => r.cuisine))];
+      filterCuisine.innerHTML = '<option value="">Filter by Cuisine</option>';
+      cuisines.forEach(cuisine => {
+        const option = document.createElement('option');
+        option.value = cuisine;
+        option.textContent = cuisine;
+        filterCuisine.appendChild(option);
+      });
+    }
+
+    function addRecipe(event) {
+      event.preventDefault();
+
+      const title = document.getElementById('title').value.trim();
+      const ingredients = document.getElementById('ingredients').value.trim().split(',').map(ing => ing.trim());
+      const instructions = document.getElementById('instructions').value.trim();
+      const cuisine = document.getElementById('cuisine').value.trim();
+      const image = document.getElementById('image').value.trim();
+
+      if (!title || ingredients.length === 0 || !instructions || !cuisine) {
+        alert('Please fill out all fields.');
+        return;
+      }
+
+      recipes.push({ title, ingredients, instructions, cuisine, image });
+      saveRecipes();
+      populateCuisineFilter();
+      displayRecipes();
+      recipeForm.reset();
+    }
+
+    function editRecipe(index) {
+      const recipe = recipes[index];
+
+      document.getElementById('title').value = recipe.title;
+      document.getElementById('ingredients').value = recipe.ingredients.join(', ');
+      document.getElementById('instructions').value = recipe.instructions;
+      document.getElementById('cuisine').value = recipe.cuisine;
+      document.getElementById('image').value = recipe.image;
+
+      deleteRecipe(index);
+    }
+
+    function deleteRecipe(index) {
+      recipes.splice(index, 1);
+      saveRecipes();
+      populateCuisineFilter();
+      displayRecipes();
+    }
+
+    recipeForm.addEventListener('submit', addRecipe);
+    searchInput.addEventListener('input', displayRecipes);
+    filterCuisine.addEventListener('change', displayRecipes);
+
+    populateCuisineFilter();
+    displayRecipes();
+  </script>
+</body>
+</html>
